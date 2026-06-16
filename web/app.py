@@ -229,6 +229,16 @@ def api_analyze():
             tree = upgma(seqs_list, names, distance_model=dist_model)
         
         svg = tree_to_svg(tree, width=600, height=400)
+        
+        bootstrap_values = []
+        def collect_bootstrap(node):
+            if not node.is_leaf() and node.bootstrap is not None:
+                bootstrap_values.append(round(float(node.bootstrap), 1))
+            for child in node.children:
+                collect_bootstrap(child)
+        if tree.root:
+            collect_bootstrap(tree.root)
+        
         result['tree'] = {
             'newick': tree.to_newick(),
             'leaves': tree.get_leaves(),
@@ -236,6 +246,8 @@ def api_analyze():
             'method': method,
             'distance_model': dist_model,
             'bootstrap': do_bootstrap,
+            'n_bootstrap': n_boot if do_bootstrap else 0,
+            'bootstrap_values': bootstrap_values,
         }
     
     elif analysis == 'motif':

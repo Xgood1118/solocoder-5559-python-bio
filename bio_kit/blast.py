@@ -101,12 +101,12 @@ class MiniBLAST:
         
         extended_hits.sort(key=lambda x: x['score'], reverse=True)
         
-        seen = set()
+        seen_subjects = {}
         unique_hits = []
         for hit in extended_hits:
-            key = (hit['subject_index'], hit['query_start'], hit['subject_start'])
-            if key not in seen:
-                seen.add(key)
+            subj_idx = hit['subject_index']
+            if subj_idx not in seen_subjects:
+                seen_subjects[subj_idx] = True
                 unique_hits.append(hit)
                 if len(unique_hits) >= top_n:
                     break

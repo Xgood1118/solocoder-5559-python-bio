@@ -62,6 +62,16 @@ class TreeNode:
             return f"({inner}){self.bootstrap:.0f}:{self.distance:.6f}"
         return f"({inner}):{self.distance:.6f}"
 
+    def to_ete3_tree(self):
+        try:
+            from ete3 import Tree as EteTree
+            newick = self.to_newick()
+            if not newick.endswith(';'):
+                newick = newick + ';'
+            return EteTree(newick, format=0)
+        except Exception:
+            return None
+
 
 class Tree:
     def __init__(self, root=None):
@@ -79,6 +89,11 @@ class Tree:
     
     def __repr__(self):
         return f"Tree(leaves={len(self.get_leaves())})"
+
+    def to_ete3_tree(self):
+        if not self.root:
+            return None
+        return self.root.to_ete3_tree()
 
 
 def _p_distance_matrix(sequences):

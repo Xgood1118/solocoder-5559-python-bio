@@ -170,23 +170,74 @@ def alignment_colors(aligned_sequences, names=None, width=800, char_width=8, lin
     return svg_content
 
 def tree_to_svg(tree, width=600, height=400, output_file=None):
+    import os
+    import tempfile
+    import sys
+
+    ete_tree = tree.to_ete3_tree() if hasattr(tree, 'to_ete3_tree') else None
+
+    ete_bootstrap_info = {}
+    if ete_tree is not None:
+        try:
+            leaf_index = 0
+            for node in ete_tree.traverse("preorder"):
+                if node.is_leaf():
+                    leaf_index += 1
+                elif node.support and node.support > 0:
+                    child_leaves = tuple(sorted(node.get_leaf_names()))
+                    ete_bootstrap_info[child_leaves] = float(node.support)
+        except Exception:
+            pass
+
+    if ete_tree is not None and sys.platform != 'win32':
+        try:
+            os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+            tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.svg', delete=False)
+            tmp.close()
+            try:
+                from ete3 import NodeStyle, TextFace, AttrFace
+
+                for node in ete_tree.traverse():
+                    ns = NodeStyle()
+                    ns["size"] = 0
+                    ns["vt_line_width"] = 2
+                    ns["hz_line_width"] = 2
+                    node.set_style(ns)
+
+                    if not node.is_leaf() and node.support and node.support > 0:
+                        support_face = TextFace(" %d" % int(node.support), fsize=11, fgcolor="#c0392b")
+                        node.add_face(support_face, column=0, position="branch-top")
+
+                ete_tree.render(tmp.name, w=width, h=height, units='px')
+                with open(tmp.name, 'r', encoding='utf-8', errors='ignore') as f:
+                    svg_content = f.read()
+                if output_file:
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        f.write(svg_content)
+                return svg_content
+            finally:
+                try:
+                    os.unlink(tmp.name)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     leaves = tree.get_leaves()
     n_leaves = len(leaves)
-    
+
     leaf_y_step = (height - 60) / max(n_leaves, 1)
     margin_left = 80
     margin_right = 30
     margin_top = 30
     margin_bottom = 30
-    
+
     svg = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" font-family="Arial">',
         '  <rect width="100%" height="100%" fill="white"/>',
         f'  <text x="{width // 2}" y="20" font-size="14" text-anchor="middle" font-weight="bold">Phylogenetic Tree</text>',
     ]
-    
-    newick_str = tree.to_newick()
-    
+
     def calc_total_distance(node):
         if node.is_leaf():
             return node.distance
@@ -195,7 +246,7 @@ def tree_to_svg(tree, width=600, height=400, output_file=None):
             d = calc_total_distance(child)
             max_dist = max(max_dist, d + node.distance)
         return max_dist
-    
+
     total_dist = 0
     def calc_max_depth(node, depth=0):
         nonlocal total_dist
@@ -204,62 +255,71 @@ def tree_to_svg(tree, width=600, height=400, output_file=None):
             return
         for child in node.children:
             calc_max_depth(child, depth + node.distance)
-    
-    calc_max_depth(tree.root)
-    
+
+    if tree.root:
+        calc_max_depth(tree.root)
+
     if total_dist == 0:
         total_dist = 1.0
-    
+
     leaf_index = [0]
-    
+
     def draw_node(node, x, y, depth):
         if node.is_leaf():
             y_pos = margin_top + leaf_index[0] * leaf_y_step + leaf_y_step / 2
             leaf_index[0] += 1
-            
+
             x_end = margin_left + depth * ((width - margin_left - margin_right) / total_dist)
             svg.append(f'  <line x1="{x}" y1="{y}" x2="{x_end}" y2="{y_pos}" stroke="#333" stroke-width="1.5"/>')
             svg.append(f'  <text x="{x_end + 5}" y="{y_pos + 4}" font-size="11" fill="#333">{node.name}</text>')
-            
-            return y_pos, x_end
+
+            return y_pos, x_end, {node.name}
         else:
             child_ys = []
             child_xs = []
-            
+            all_leaves = set()
+
             new_depth = depth + node.distance
             x_pos = margin_left + new_depth * ((width - margin_left - margin_right) / total_dist)
-            
+
             for child in node.children:
-                cy, cx = draw_node(child, x_pos, 0, new_depth)
+                cy, cx, cleaves = draw_node(child, x_pos, 0, new_depth)
                 child_ys.append(cy)
                 child_xs.append(cx)
-            
+                all_leaves |= cleaves
+
             avg_y = sum(child_ys) / len(child_ys)
-            
+
             svg.append(f'  <line x1="{x}" y1="{avg_y}" x2="{x_pos}" y2="{avg_y}" stroke="#333" stroke-width="1.5"/>')
-            
+
             if len(child_ys) >= 2:
                 min_y = min(child_ys)
                 max_y = max(child_ys)
                 svg.append(f'  <line x1="{x_pos}" y1="{min_y}" x2="{x_pos}" y2="{max_y}" stroke="#333" stroke-width="1.5"/>')
-            
-            if node.bootstrap is not None and not node.is_leaf():
-                svg.append(f'  <circle cx="{x_pos}" cy="{avg_y}" r="4" fill="white" stroke="#333" stroke-width="1"/>')
-                svg.append(f'  <text x="{x_pos + 6}" y="{avg_y - 6}" font-size="9" fill="#c0392b">{node.bootstrap:.0f}</text>')
-            
-            return avg_y, x_pos
-    
+
+            bootstrap_val = node.bootstrap
+            if bootstrap_val is not None:
+                leaves_key = tuple(sorted(all_leaves))
+                if leaves_key in ete_bootstrap_info:
+                    bootstrap_val = ete_bootstrap_info[leaves_key]
+
+            if bootstrap_val is not None and not node.is_leaf():
+                svg.append(f'  <circle cx="{x_pos}" cy="{avg_y}" r="5" fill="white" stroke="#c0392b" stroke-width="1.5"/>')
+                svg.append(f'  <text x="{x_pos + 8}" y="{avg_y - 8}" font-size="11" fill="#c0392b" font-weight="bold">{bootstrap_val:.0f}</text>')
+
+            return avg_y, x_pos, all_leaves
+
     if tree.root:
         draw_node(tree.root, margin_left, 0, 0)
-    
+
     svg.append('</svg>')
-    
+
     svg_content = '\n'.join(svg)
-    
+
     if output_file:
         with open(output_file, 'w') as f:
             f.write(svg_content)
-    
+
     return svg_content
 
 def similarity_heatmap(sequences, names=None, width=500, height=400, output_file=None):
