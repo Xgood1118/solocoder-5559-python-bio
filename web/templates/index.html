@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio Kit - 生物信息学分析工具包</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a73e8, #34a853);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header p { opacity: 0.9; font-size: 14px; margin-top: 4px; }
+        
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .sidebar h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .tool-list { list-style: none; }
+        .tool-item {
+            padding: 10px 14px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            color: #444;
+        }
+        .tool-item:hover { background: #f0f4ff; }
+        .tool-item.active {
+            background: #e8f0fe;
+            color: #1a73e8;
+            font-weight: 500;
+        }
+        .tool-category {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+        
+        .main-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            min-height: 600px;
+        }
+        
+        .tool-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1a73e8;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 6px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #1a73e8;
+            color: white;
+        }
+        .btn-primary:hover { background: #1557b0; }
+        .btn-secondary {
+            background: #e8f0fe;
+            color: #1a73e8;
+        }
+        .btn-secondary:hover { background: #d2e3fc; }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        
+        .example-note {
+            background: #fef7e0;
+            border-left: 4px solid #fbbc04;
+            padding: 10px 14px;
+            border-radius: 0 8px 8px 0;
+            font-size: 13px;
+            color: #6b4e00;
+            margin-bottom: 16px;
+        }
+        
+        .results {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #eee;
+        }
+        .results h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: #333;
+        }
+        
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .result-card h4 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .result-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a73e8;
+        }
+        
+        .seq-display {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        
+        .alignment-display {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            line-height: 1.4;
+        }
+        
+        .alignment-line { white-space: pre; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        tr:hover { background: #f8f9fa; }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .loading.active { display: block; }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e8f0fe;
+            border-top-color: #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .error {
+            background: #fce8e6;
+            color: #d93025;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+        
+        .viz-container {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+        }
+        .viz-container svg { max-width: 100%; height: auto; }
+        
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .tab {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+        .tab.active {
+            color: #1a73e8;
+            border-bottom-color: #1a73e8;
+            font-weight: 500;
+        }
+        
+        .orf-item {
+            background: #f8f9fa;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #34a853;
+        }
+        .orf-item .orf-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .orf-item .orf-seq {
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: #444;
+        }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧬 Bio Kit - 生物信息学分析工具包</h1>
+        <p>教学与小规模研究用 | DNA/RNA/蛋白质序列分析 | 序列比对 | 进化树构建</p>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h3>分析工具</h3>
+            <ul class="tool-list">
+                <li class="tool-item active" data-tool="basic">📊 基础序列分析</li>
+                <li class="tool-item" data-tool="orf">🔬 ORF 开放阅读框</li>
+                <li class="tool-item" data-tool="restriction">✂️ 限制酶切分析</li>
+                <li class="tool-item" data-tool="primer">🧪 引物设计</li>
+            </ul>
+            
+            <div class="tool-category">
+                <h3>序列比对</h3>
+                <ul class="tool-list">
+                    <li class="tool-item" data-tool="alignment_pair">➡️➡️ 双序列比对</li>
+                    <li class="tool-item" data-tool="alignment_multi">🔗 多序列比对</li>
+                    <li class="tool-item" data-tool="blast">🔍 BLAST 近似搜索</li>
+                </ul>
+            </div>
+            
+            <div class="tool-category">
+                <h3>进化分析</h3>
+                <ul class="tool-list">
+                    <li class="tool-item" data-tool="phylogeny">🌳 进化树构建</li>
+                </ul>
+            </div>
+            
+            <div class="tool-category">
+                <h3>高级分析</h3>
+                <ul class="tool-list">
+                    <li class="tool-item" data-tool="motif">🎯 基序查找</li>
+                    <li class="tool-item" data-tool="statistics">📈 序列统计</li>
+                    <li class="tool-item" data-tool="gene_prediction">🧬 基因预测</li>
+                </ul>
+            </div>
+            
+            <div class="tool-category">
+                <h3>可视化</h3>
+                <ul class="tool-list">
+                    <li class="tool-item" data-tool="visualization">🎨 可视化</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="main-panel">
+            <div id="tool-content">
+                <h2 class="tool-title" id="tool-title">基础序列分析</h2>
+                
+                <div class="form-group">
+                    <label>序列格式</label>
+                    <select id="seq-format">
+                        <option value="fasta">FASTA</option>
+                        <option value="fastq">FASTQ</option>
+                        <option value="genbank">GenBank</option>
+                        <option value="clustal">ClustalW</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>序列数据</label>
+                    <textarea id="seq-input" rows="10" placeholder="输入序列数据..."></textarea>
+                </div>
+                
+                <div class="example-note">
+                    💡 提示：点击下方按钮加载示例序列，或直接粘贴您的FASTA/FASTQ/GenBank格式序列
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="loadExample()">加载示例</button>
+                    <button class="btn btn-primary" onclick="runAnalysis()">运行分析</button>
+                </div>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>正在分析中...</p>
+                </div>
+                
+                <div class="error hidden" id="error"></div>
+                
+                <div class="results hidden" id="results">
+                    <h3>分析结果</h3>
+                    <div id="result-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTool = 'basic';
+        
+        const toolTitles = {
+            'basic': '基础序列分析',
+            'orf': 'ORF 开放阅读框查找',
+            'restriction': '限制酶切位点分析',
+            'primer': '引物设计',
+            'alignment_pair': '双序列比对',
+            'alignment_multi': '多序列比对',
+            'blast': 'BLAST 近似搜索',
+            'phylogeny': '进化树构建',
+            'motif': '基序查找',
+            'statistics': '序列统计分析',
+            'gene_prediction': '基因预测',
+            'visualization': '可视化'
+        };
+        
+        const examples = {
+            'basic': `>Sample_DNA
+ATGGCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG
+ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGAT
+CGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGA
+TCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG
+TAG`,
+            'orf': `>Sample_DNA
+ATGGCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG
+ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGAT
+CGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGA
+TCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG
+TAG`,
+            'restriction': `>plasmid
+GAATTCGATCGATCGATCGATCGATCGATCGGGATCCCGATCGATCGATCGATCG
+ATCGAAGCTTGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC
+GATCGATCGATCGATCGATCGATCGAGATCTCGATCGATCGATCGATCGATCGA
+TCGATCGATCGATCGCTCGAGCGATCGATCGATCGATCGATCGATCGATCGATC`,
+            'primer': `>template
+ATGGCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG
+ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGAT
+CGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGA
+TCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG
+TAG`,
+            'alignment_pair': `>Sequence_A
+ATGGCGATTACCGTTGATGTTGATGCTGGTGAAACTGCTGGTGAAACCGGTGAA
+>Sequence_B
+ATGGCGATTACCGTTCATGTTGATGCTGGTCAAACTGCTGGTGAAACCGGTGAA`,
+            'alignment_multi': `>Sequence_A
+ATGGCGATTACCGTTGATGTTGATGCTGGTGAAACTGCTGGTGAAACCGGTGAA
+>Sequence_B
+ATGGCGATTACCGTTCATGTTGATGCTGGTCAAACTGCTGGTGAAACCGGTGAA
+>Sequence_C
+ATGGCGATTACCGTTGACGTTAATGCTGGTGAAACGGCTGGCGAAACCGGCAAA
+>Sequence_D
+ATGGCTATCACCGTTGATGTTAATGCAGGTGAAACTGCTGGCGAGACTGGTGAA`,
+            'blast': `>Query
+ATGGCGATTACCGTTGATGTTGATGCTGGTGAAACTGCTGGTGAAACCGGTGAA
+>DB_Seq1
+ATGGCGATTACCGTTCATGTTGATGCTGGTCAAACTGCTGGTGAAACCGGTGAA
+>DB_Seq2
+ATGGCGATTACCGTTGACGTTAATGCTGGTGAAACGGCTGGCGAAACCGGCAAA
+>DB_Seq3
+ATGGCTATCACCGTTGATGTTAATGCAGGTGAAACTGCTGGCGAGACTGGTGAA
+>DB_Seq4
+TTAAGCGGATGATGGCCGATGCTAATGCGGGTGAAAGTGCTGGTGATGCCGGT`,
+            'phylogeny': `>Sequence_A
+ATGGCGATTACCGTTGATGTTGATGCTGGTGAAACTGCTGGTGAAACCGGTGAA
+>Sequence_B
+ATGGCGATTACCGTTCATGTTGATGCTGGTCAAACTGCTGGTGAAACCGGTGAA
+>Sequence_C
+ATGGCGATTACCGTTGACGTTAATGCTGGTGAAACGGCTGGCGAAACCGGCAAA
+>Sequence_D
+ATGGCTATCACCGTTGATGTTAATGCAGGTGAAACTGCTGGCGAGACTGGTGAA
+>Sequence_E
+TTAAGCGGATGATGGCCGATGCTAATGCGGGTGAAAGTGCTGGTGATGCCGGT`,
+            'motif': `>Sample_DNA
+ATGGCGATCGATCGATCGATCGAAGCTTGCATCGATCGATCGGGATCCCGATCG
+ATCGATCGATCGATCGATCGATCGATCGCTCGAGCGATCGATCGATCGATCGAT`,
+            'statistics': `>Sample_DNA
+ATGGCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG
+ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGAT
+CGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGA
+TCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG
+TAG`,
+            'gene_prediction': `>Sample_DNA
+TTGACAATCGATCGATCGTATAATCGATCGATCGATCGATCGATCGATCGATCG
+AGGAGGTCATGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC
+GATCGATCGATCGATCGGCTCTCCAAAAAATCGATCGATCGATCGATCGATCGA
+TCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATC`,
+            'visualization': `>Sequence_A
+ATGGCGATTACCGTTGATGTTGATGCTGGTGAAACTGCTGGTGAAACCGGTGAA
+>Sequence_B
+ATGGCGATTACCGTTCATGTTGATGCTGGTCAAACTGCTGGTGAAACCGGTGAA
+>Sequence_C
+ATGGCGATTACCGTTGACGTTAATGCTGGTGAAACGGCTGGCGAAACCGGCAAA
+>Sequence_D
+ATGGCTATCACCGTTGATGTTAATGCAGGTGAAACTGCTGGCGAGACTGGTGAA`
+        };
+        
+        const toolParams = {
+            'basic': {},
+            'orf': { min_length: { label: '最小ORF长度(aa)', type: 'number', default: 30 } },
+            'restriction': { 
+                enzymes: { label: '限制酶(逗号分隔)', type: 'text', default: 'EcoRI,BamHI,HindIII' } 
+            },
+            'primer': {
+                start: { label: '起始位置', type: 'number', default: 0 },
+                end: { label: '结束位置', type: 'number', default: 200 },
+                min_length: { label: '引物最小长度', type: 'number', default: 18 },
+                max_length: { label: '引物最大长度', type: 'number', default: 25 },
+                min_tm: { label: '最小Tm(°C)', type: 'number', default: 55 },
+                max_tm: { label: '最大Tm(°C)', type: 'number', default: 65 },
+                min_gc: { label: '最小GC(%)', type: 'number', default: 40 },
+                max_gc: { label: '最大GC(%)', type: 'number', default: 60 },
+            },
+            'alignment_pair': {
+                algorithm: { label: '算法', type: 'select', options: ['needleman', 'smith-waterman'], 
+                            labels: ['Needleman-Wunsch 全局', 'Smith-Waterman 局部'], default: 'needleman' }
+            },
+            'alignment_multi': {},
+            'blast': {},
+            'phylogeny': {
+                method: { label: '建树方法', type: 'select', options: ['upgma', 'nj', 'mp'], 
+                         labels: ['UPGMA', 'Neighbor-Joining', 'Maximum Parsimony'], default: 'upgma' },
+                distance_model: { label: '距离模型', type: 'select', options: ['jukes_cantor', 'kimura2'], 
+                                 labels: ['Jukes-Cantor', 'Kimura 2-parameter'], default: 'jukes_cantor' },
+                bootstrap: { label: 'Bootstrap 检验', type: 'checkbox', default: false },
+                n_bootstrap: { label: 'Bootstrap 次数', type: 'number', default: 100 },
+            },
+            'motif': {
+                motif_type: { label: '基序类型', type: 'select', options: ['regex', 'prosite'], 
+                             labels: ['正则表达式', 'PROSITE 数据库'], default: 'regex' },
+                pattern: { label: '正则表达式', type: 'text', default: 'GAATTC' },
+                prosite_id: { label: 'PROSITE ID', type: 'text', default: 'PS00017' },
+            },
+            'statistics': {},
+            'gene_prediction': {},
+            'visualization': {
+                viz_type: { label: '可视化类型', type: 'select', 
+                           options: ['gc', 'alignment', 'heatmap', 'tree'], 
+                           labels: ['GC含量图', '多序列比对图', '相似度热力图', '进化树'], default: 'gc' },
+            },
+        };
+        
+        document.querySelectorAll('.tool-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.tool-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                currentTool = item.dataset.tool;
+                document.getElementById('tool-title').textContent = toolTitles[currentTool];
+                renderParams();
+                document.getElementById('results').classList.add('hidden');
+                document.getElementById('error').classList.add('hidden');
+            });
+        });
+        
+        function renderParams() {
+            const params = toolParams[currentTool] || {};
+            const existingParams = document.getElementById('dynamic-params');
+            if (existingParams) existingParams.remove();
+            
+            if (Object.keys(params).length === 0) return;
+            
+            const paramsDiv = document.createElement('div');
+            paramsDiv.id = 'dynamic-params';
+            paramsDiv.style.marginTop = '16px';
+            paramsDiv.style.paddingTop = '16px';
+            paramsDiv.style.borderTop = '1px solid #eee';
+            
+            const title = document.createElement('h4');
+            title.textContent = '参数设置';
+            title.style.fontSize = '14px';
+            title.style.marginBottom = '12px';
+            title.style.color = '#555';
+            paramsDiv.appendChild(title);
+            
+            const formRow = document.createElement('div');
+            formRow.className = 'form-row';
+            
+            let count = 0;
+            for (const [key, param] of Object.entries(params)) {
+                const group = document.createElement('div');
+                group.className = 'form-group';
+                
+                const label = document.createElement('label');
+                label.textContent = param.label;
+                label.htmlFor = 'param-' + key;
+                group.appendChild(label);
+                
+                if (param.type === 'select') {
+                    const select = document.createElement('select');
+                    select.id = 'param-' + key;
+                    param.options.forEach((opt, i) => {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.textContent = param.labels ? param.labels[i] : opt;
+                        if (opt === param.default) option.selected = true;
+                        select.appendChild(option);
+                    });
+                    group.appendChild(select);
+                } else if (param.type === 'checkbox') {
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = 'param-' + key;
+                    checkbox.checked = param.default;
+                    checkbox.style.width = 'auto';
+                    group.appendChild(checkbox);
+                } else {
+                    const input = document.createElement('input');
+                    input.type = param.type;
+                    input.id = 'param-' + key;
+                    input.value = param.default !== undefined ? param.default : '';
+                    group.appendChild(input);
+                }
+                
+                formRow.appendChild(group);
+                count++;
+                if (count % 2 === 0) {
+                    paramsDiv.appendChild(formRow.cloneNode(true));
+                    formRow.innerHTML = '';
+                }
+            }
+            
+            if (formRow.children.length > 0) {
+                paramsDiv.appendChild(formRow);
+            }
+            
+            const seqInput = document.getElementById('seq-input').parentNode;
+            seqInput.parentNode.insertBefore(paramsDiv, document.querySelector('.example-note'));
+        }
+        
+        function getParams() {
+            const params = {};
+            const toolParamDefs = toolParams[currentTool] || {};
+            for (const key of Object.keys(toolParamDefs)) {
+                const el = document.getElementById('param-' + key);
+                if (el) {
+                    if (el.type === 'checkbox') {
+                        params[key] = el.checked;
+                    } else if (el.type === 'number') {
+                        params[key] = parseFloat(el.value);
+                    } else {
+                        params[key] = el.value;
+                    }
+                }
+            }
+            return params;
+        }
+        
+        function loadExample() {
+            const example = examples[currentTool] || examples['basic'];
+            document.getElementById('seq-input').value = example.trim();
+            
+            if (currentTool === 'alignment_multi' || currentTool === 'alignment_pair' || 
+                currentTool === 'blast' || currentTool === 'phylogeny' ||
+                currentTool === 'visualization') {
+                document.getElementById('seq-format').value = 'fasta';
+            }
+        }
+        
+        async function runAnalysis() {
+            const sequence = document.getElementById('seq-input').value;
+            const format = document.getElementById('seq-format').value;
+            const params = getParams();
+            
+            if (!sequence.trim()) {
+                showError('请输入序列数据');
+                return;
+            }
+            
+            showLoading(true);
+            hideError();
+            hideResults();
+            
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sequence,
+                        format,
+                        analysis: currentTool,
+                        ...params
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                displayResults(data);
+            } catch (err) {
+                showError('请求失败: ' + err.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function showLoading(show) {
+            const el = document.getElementById('loading');
+            el.classList.toggle('active', show);
+        }
+        
+        function showError(msg) {
+            const el = document.getElementById('error');
+            el.textContent = '❌ ' + msg;
+            el.classList.remove('hidden');
+        }
+        
+        function hideError() {
+            document.getElementById('error').classList.add('hidden');
+        }
+        
+        function hideResults() {
+            document.getElementById('results').classList.add('hidden');
+        }
+        
+        function displayResults(data) {
+            const resultDiv = document.getElementById('result-content');
+            resultDiv.innerHTML = '';
+            document.getElementById('results').classList.remove('hidden');
+            
+            switch (currentTool) {
+                case 'basic':
+                    renderBasicResult(data, resultDiv);
+                    break;
+                case 'orf':
+                    renderOrfResult(data, resultDiv);
+                    break;
+                case 'restriction':
+                    renderRestrictionResult(data, resultDiv);
+                    break;
+                case 'primer':
+                    renderPrimerResult(data, resultDiv);
+                    break;
+                case 'alignment_pair':
+                    renderAlignmentPairResult(data, resultDiv);
+                    break;
+                case 'alignment_multi':
+                    renderAlignmentMultiResult(data, resultDiv);
+                    break;
+                case 'blast':
+                    renderBlastResult(data, resultDiv);
+                    break;
+                case 'phylogeny':
+                    renderPhylogenyResult(data, resultDiv);
+                    break;
+                case 'motif':
+                    renderMotifResult(data, resultDiv);
+                    break;
+                case 'statistics':
+                    renderStatisticsResult(data, resultDiv);
+                    break;
+                case 'gene_prediction':
+                    renderGenePredictionResult(data, resultDiv);
+                    break;
+                case 'visualization':
+                    renderVisualizationResult(data, resultDiv);
+                    break;
+            }
+        }
+        
+        function renderBasicResult(data, container) {
+            container.innerHTML = `
+                <div class="form-row">
+                    <div class="result-card">
+                        <h4>序列长度</h4>
+                        <div class="result-value">${data.length} bp</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>GC 含量</h4>
+                        <div class="result-value">${data.gc.toFixed(2)}%</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>信息熵</h4>
+                        <div class="result-value">${data.entropy.toFixed(4)} bits</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>碱基统计</h4>
+                        <div style="font-size: 13px; color: #555;">
+                            A: ${data.stats.a_count} | T: ${data.stats.t_count}<br>
+                            G: ${data.stats.g_count} | C: ${data.stats.c_count}
+                        </div>
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h4>反向互补序列</h4>
+                    <div class="seq-display">${data.reverse_complement}</div>
+                </div>
+                <div class="result-card">
+                    <h4>转录产物 (RNA)</h4>
+                    <div class="seq-display">${data.transcribed}</div>
+                </div>
+                <div class="result-card">
+                    <h4>翻译产物 (蛋白质)</h4>
+                    <div class="seq-display">${data.translated}</div>
+                </div>
+            `;
+        }
+        
+        function renderOrfResult(data, container) {
+            let html = `<div class="result-card"><h4>找到 ${data.total_orfs} 个 ORF（显示前20个最长的）</h4></div>`;
+            
+            data.orfs.forEach((orf, i) => {
+                html += `
+                    <div class="orf-item">
+                        <div class="orf-header">
+                            <span>ORF ${i+1} | 链: ${orf.strand} | 读框: ${orf.frame}</span>
+                            <span>${orf.start}-${orf.end} | ${orf.length_aa} aa</span>
+                        </div>
+                        <div class="orf-seq">${orf.protein}</div>
+                    </div>
+                `;
+            });
+            
+            html += `<div class="result-card"><h4>六框翻译</h4>`;
+            for (const [frame, seq] of Object.entries(data.six_frames)) {
+                html += `
+                    <div style="margin-bottom: 8px;">
+                        <span style="font-weight: 600; color: #1a73e8;">${frame}:</span>
+                        <span style="font-family: monospace; font-size: 12px;">${seq.slice(0, 100)}...</span>
+                    </div>
+                `;
+            }
+            html += `</div>`;
+            
+            container.innerHTML = html;
+        }
+        
+        function renderRestrictionResult(data, container) {
+            let html = '';
+            
+            for (const [enzyme, info] of Object.entries(data.sites)) {
+                html += `
+                    <div class="result-card">
+                        <h4>${enzyme} - ${info.count} 个酶切位点</h4>
+                        <div style="font-size: 13px; color: #666; margin-bottom: 8px;">
+                            片段长度: ${info.fragments.join(', ')} bp
+                        </div>
+                        <table>
+                            <tr><th>位置</th><th>序列</th><th>上链切</th><th>下链切</th></tr>
+                            ${info.sites.slice(0, 10).map(s => `
+                                <tr>
+                                    <td>${s.position}</td>
+                                    <td><code>${s.match}</code></td>
+                                    <td>${s.cut_top}</td>
+                                    <td>${s.cut_bottom}</td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                        ${info.sites.length > 10 ? `<p style="font-size: 12px; color: #999; margin-top: 6px;">...还有 ${info.sites.length - 10} 个位点</p>` : ''}
+                    </div>
+                `;
+            }
+            
+            if (Object.keys(data.sites).length === 0) {
+                html = '<div class="result-card"><h4>未找到任何酶切位点</h4></div>';
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function renderPrimerResult(data, container) {
+            let html = '';
+            
+            if (data.primers.best_pairs && data.primers.best_pairs.length > 0) {
+                html += `<div class="result-card"><h4>最佳引物对 (Top 5)</h4>
+                    <table>
+                        <tr><th>#</th><th>上游引物</th><th>下游引物</th><th>产物大小</th><th>Tm差</th></tr>`;
+                data.primers.best_pairs.slice(0, 5).forEach((pair, i) => {
+                    html += `
+                        <tr>
+                            <td>${i+1}</td>
+                            <td><code>${pair.forward.sequence}</code><br><small>Tm: ${pair.forward.tm.toFixed(1)}°C | GC: ${pair.forward.gc.toFixed(1)}%</small></td>
+                            <td><code>${pair.reverse.sequence}</code><br><small>Tm: ${pair.reverse.tm.toFixed(1)}°C | GC: ${pair.reverse.gc.toFixed(1)}%</small></td>
+                            <td>${pair.product_size} bp</td>
+                            <td>${pair.tm_diff.toFixed(1)}°C</td>
+                        </tr>
+                    `;
+                });
+                html += `</table></div>`;
+            }
+            
+            html += `<div class="result-card"><h4>候选上游引物</h4>
+                <table>
+                    <tr><th>序列</th><th>位置</th><th>长度</th><th>Tm</th><th>GC%</th></tr>`;
+            data.primers.forward_primers.slice(0, 5).forEach(p => {
+                html += `
+                    <tr>
+                        <td><code>${p.sequence}</code></td>
+                        <td>${p.position}</td>
+                        <td>${p.sequence.length}</td>
+                        <td>${p.tm.toFixed(1)}°C</td>
+                        <td>${p.gc.toFixed(1)}%</td>
+                    </tr>
+                `;
+            });
+            html += `</table></div>`;
+            
+            container.innerHTML = html;
+        }
+        
+        function renderAlignmentPairResult(data, container) {
+            const aln = data.alignment;
+            container.innerHTML = `
+                <div class="form-row">
+                    <div class="result-card">
+                        <h4>比对得分</h4>
+                        <div class="result-value">${aln.score}</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>一致性</h4>
+                        <div class="result-value">${aln.identity.toFixed(2)}%</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>空位</h4>
+                        <div class="result-value">${aln.gaps}</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>比对长度</h4>
+                        <div class="result-value">${aln.length} bp</div>
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h4>比对结果</h4>
+                    <div class="alignment-display">
+                        <div class="alignment-line">${aln.name1}: ${aln.seq1}</div>
+                        <div class="alignment-line">${' '.repeat(aln.name1.length + 2)}${aln.match_line}</div>
+                        <div class="alignment-line">${aln.name2}: ${aln.seq2}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderAlignmentMultiResult(data, container) {
+            const msa = data.msa;
+            let alignHtml = '';
+            const blockLen = 60;
+            const maxNameLen = Math.max(...msa.names.map(n => n.length), 10);
+            
+            for (let start = 0; start < msa.length; start += blockLen) {
+                const end = Math.min(start + blockLen, msa.length);
+                
+                msa.names.forEach((name, i) => {
+                    const seq = msa.sequences[i].slice(start, end);
+                    const paddedName = name.padEnd(maxNameLen + 2);
+                    alignHtml += `<div class="alignment-line">${paddedName}${seq}</div>`;
+                });
+                
+                const consensus = msa.consensus.slice(start, end);
+                alignHtml += `<div class="alignment-line" style="color: #1a73e8; font-weight: bold;">${' '.repeat(maxNameLen + 2)}${consensus} (consensus)</div>`;
+                alignHtml += '<div style="height: 8px;"></div>';
+            }
+            
+            container.innerHTML = `
+                <div class="form-row">
+                    <div class="result-card">
+                        <h4>序列数量</h4>
+                        <div class="result-value">${msa.num_seqs}</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>比对长度</h4>
+                        <div class="result-value">${msa.length} bp</div>
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h4>多序列比对结果</h4>
+                    <div class="alignment-display">${alignHtml}</div>
+                </div>
+                <div class="result-card">
+                    <h4>Newick 格式</h4>
+                    <div class="seq-display">${msa.newick}</div>
+                    <button class="btn btn-secondary" style="margin-top: 8px;" onclick="exportText('${encodeURIComponent(msa.newick)}', 'alignment.newick')">导出 Newick</button>
+                </div>
+            `;
+        }
+        
+        function renderBlastResult(data, container) {
+            const blast = data.blast;
+            let html = `
+                <div class="result-card">
+                    <h4>查询序列长度: ${blast.query_length} bp | 数据库序列数: ${blast.db_size}</h4>
+                </div>
+            `;
+            
+            if (blast.hits.length === 0) {
+                html += '<div class="result-card"><h4>未找到匹配序列</h4></div>';
+            } else {
+                html += `<div class="result-card"><h4>匹配结果 (Top ${blast.hits.length})</h4>
+                    <table>
+                        <tr><th>#</th><th>目标序列</th><th>得分</th><th>一致性</th><th>查询位置</th><th>目标位置</th></tr>`;
+                blast.hits.forEach((hit, i) => {
+                    html += `
+                        <tr>
+                            <td>${i+1}</td>
+                            <td>${hit.subject}</td>
+                            <td><strong>${hit.score}</strong></td>
+                            <td>${hit.identity.toFixed(1)}%</td>
+                            <td>${hit.query_start}-${hit.query_end}</td>
+                            <td>${hit.subject_start}-${hit.subject_end}</td>
+                        </tr>
+                    `;
+                });
+                html += `</table></div>`;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function renderPhylogenyResult(data, container) {
+            const tree = data.tree;
+            container.innerHTML = `
+                <div class="form-row">
+                    <div class="result-card">
+                        <h4>建树方法</h4>
+                        <div class="result-value">${tree.method.toUpperCase()}</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>距离模型</h4>
+                        <div class="result-value">${tree.distance_model}</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>叶节点数</h4>
+                        <div class="result-value">${tree.leaves.length}</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>Bootstrap</h4>
+                        <div class="result-value">${tree.bootstrap ? '是' : '否'}</div>
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h4>进化树</h4>
+                    <div class="viz-container" id="tree-viz">${tree.svg}</div>
+                </div>
+                <div class="result-card">
+                    <h4>Newick 格式</h4>
+                    <div class="seq-display">${tree.newick}</div>
+                    <button class="btn btn-secondary" style="margin-top: 8px;" onclick="exportText('${encodeURIComponent(tree.newick)}', 'tree.newick')">导出 Newick</button>
+                </div>
+            `;
+        }
+        
+        function renderMotifResult(data, container) {
+            let html = '';
+            
+            if (data.motifs && data.motifs.length > 0) {
+                html += `<div class="result-card"><h4>找到 ${data.motifs.length} 个基序</h4>
+                    <table>
+                        <tr><th>#</th><th>位置</th><th>匹配序列</th>
+                        ${data.motifs[0].name ? '<th>名称</th>' : ''}
+                        </tr>`;
+                data.motifs.slice(0, 30).forEach((m, i) => {
+                    html += `
+                        <tr>
+                            <td>${i+1}</td>
+                            <td>${m.start}-${m.end}</td>
+                            <td><code>${m.match}</code></td>
+                            ${m.name ? `<td>${m.name}</td>` : ''}
+                        </tr>
+                    `;
+                });
+                html += `</table></div>`;
+            } else {
+                html = '<div class="result-card"><h4>未找到匹配的基序</h4></div>';
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function renderStatisticsResult(data, container) {
+            const stats = data.statistics;
+            let html = `
+                <div class="form-row">
+                    <div class="result-card">
+                        <h4>序列长度</h4>
+                        <div class="result-value">${stats.length} bp</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>GC 含量</h4>
+                        <div class="result-value">${stats.gc_content.toFixed(2)}%</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>Shannon 信息熵</h4>
+                        <div class="result-value">${stats.shannon_entropy.toFixed(4)} bits</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>N50</h4>
+                        <div class="result-value">${stats.n50} bp</div>
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h4>碱基组成</h4>
+                    <div style="font-size: 14px; line-height: 1.8;">
+                        A: ${stats.a_count} (${(stats.a_count/stats.length*100).toFixed(1)}%) &nbsp;&nbsp;
+                        T: ${stats.t_count} (${(stats.t_count/stats.length*100).toFixed(1)}%)<br>
+                        G: ${stats.g_count} (${(stats.g_count/stats.length*100).toFixed(1)}%) &nbsp;&nbsp;
+                        C: ${stats.c_count} (${(stats.c_count/stats.length*100).toFixed(1)}%)
+                    </div>
+                </div>
+                <div class="result-card">
+                    <h4>Top 20 3-mer 频率</h4>
+                    <table>
+                        <tr><th>K-mer</th><th>计数</th></tr>
+                        ${stats.top_kmers.map(k => `<tr><td><code>${k[0]}</code></td><td>${k[1]}</td></tr>`).join('')}
+                    </table>
+                </div>
+            `;
+            
+            if (stats.rscu) {
+                html += `<div class="result-card">
+                    <h4>密码子偏好 (RSCU)</h4>
+                    <table>
+                        <tr><th>密码子</th><th>氨基酸</th><th>计数</th><th>RSCU</th></tr>`;
+                const sortedRscu = Object.entries(stats.rscu.rscu).sort((a,b) => b[1] - a[1]);
+                sortedRscu.slice(0, 20).forEach(([codon, rscu]) => {
+                    const aa = stats.rscu.codon_counts ? '' : '';
+                    html += `<tr><td><code>${codon}</code></td><td>${aa}</td><td>${stats.rscu.codon_counts[codon] || 0}</td><td>${rscu.toFixed(3)}</td></tr>`;
+                });
+                html += `</table></div>`;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function renderGenePredictionResult(data, container) {
+            const gp = data.gene_prediction;
+            let html = '';
+            
+            html += `<div class="result-card"><h4>启动子预测 (${gp.promoters.length} 个)</h4>
+                <table>
+                    <tr><th>#</th><th>位置</th><th>链</th><th>序列</th><th>类型</th><th>得分</th></tr>`;
+            gp.promoters.slice(0, 10).forEach((p, i) => {
+                html += `
+                    <tr>
+                        <td>${i+1}</td>
+                        <td>${p.start}-${p.end}</td>
+                        <td>${p.strand}</td>
+                        <td><code>${p.sequence}</code></td>
+                        <td>${p.type}</td>
+                        <td>${p.score.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            html += `</table></div>`;
+            
+            html += `<div class="result-card"><h4>终止子预测 (${gp.terminators.length} 个)</h4>
+                <table>
+                    <tr><th>#</th><th>位置</th><th>茎左</th><th>环</th><th>茎右</th><th>U串</th><th>得分</th></tr>`;
+            gp.terminators.slice(0, 5).forEach((t, i) => {
+                html += `
+                    <tr>
+                        <td>${i+1}</td>
+                        <td>${t.start}-${t.end}</td>
+                        <td><code>${t.stem_left}</code></td>
+                        <td>${t.loop}</td>
+                        <td><code>${t.stem_right}</code></td>
+                        <td>${t.u_stretch}</td>
+                        <td>${t.score}</td>
+                    </tr>
+                `;
+            });
+            html += `</table></div>`;
+            
+            html += `<div class="result-card"><h4>核糖体结合位点 (${gp.rbs.length} 个)</h4>
+                <table>
+                    <tr><th>#</th><th>位置</th><th>链</th><th>序列</th><th>得分</th></tr>`;
+            gp.rbs.slice(0, 10).forEach((r, i) => {
+                html += `
+                    <tr>
+                        <td>${i+1}</td>
+                        <td>${r.start}-${r.end}</td>
+                        <td>${r.strand}</td>
+                        <td><code>${r.sequence}</code></td>
+                        <td>${r.score}/${r.consensus.length}</td>
+                    </tr>
+                `;
+            });
+            html += `</table></div>`;
+            
+            container.innerHTML = html;
+        }
+        
+        function renderVisualizationResult(data, container) {
+            const viz = data.visualization;
+            let html = `
+                <div class="result-card">
+                    <h4>可视化结果</h4>
+                    <div class="viz-container">${viz.svg}</div>
+                </div>
+            `;
+            
+            if (viz.type === 'tree' && viz.newick) {
+                html += `
+                    <div class="result-card">
+                        <h4>Newick 格式</h4>
+                        <div class="seq-display">${viz.newick}</div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function exportText(content, filename) {
+            const text = decodeURIComponent(content);
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        renderParams();
+    </script>
+</body>
+</html>
